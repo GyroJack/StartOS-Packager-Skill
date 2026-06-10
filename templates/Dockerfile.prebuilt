@@ -1,0 +1,12 @@
+# Wrap a trusted prebuilt upstream image.
+# Alternative to dockerBuild: set the manifest image source to
+#   source: { dockerTag: 'ghcr.io/<org>/<app>:<tag>' }
+# and you may not need a Dockerfile at all. Use THIS file only when you must add
+# an entrypoint, CA certs, or extra assets on top of the upstream image.
+FROM ghcr.io/<org>/<app>:<tag>
+
+# Example additions:
+# COPY entrypoint.sh /usr/local/bin/start.sh
+# RUN chmod +x /usr/local/bin/start.sh
+# WORKDIR /data
+# CMD ["/usr/local/bin/start.sh"]

@@ -1,0 +1,30 @@
+# Build the service image from upstream source, pinned to a tag.
+# Referenced by manifest images.<id>.source.dockerBuild.{dockerfile, workdir}.
+# Enable CGO + a C toolchain ONLY if the upstream needs cgo (drop otherwise).
+ARG APP_VERSION=v1.0.0
+
+FROM golang:1.24-bookworm AS build
+ARG APP_VERSION
+WORKDIR /src
+RUN git clone --depth 1 --branch "${APP_VERSION}" https://github.com/<upstream>/<repo>.git .
+ENV CGO_ENABLED=1
+RUN go build -trimpath -ldflags "-s -w" -o /out/app .
+
+# (For non-Go services, swap the build stage for the appropriate toolchain.)
+
+FROM debian:bookworm-slim
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+
+COPY --from=build /out/app /usr/local/bin/app
+# Ship read-only assets at a NON-mountpoint path so the data volume can't shadow them:
+# COPY --from=build /src/templates /opt/app/templates
+
+# Use an entrypoint if the service reads files relative to its working dir:
+COPY entrypoint.sh /usr/local/bin/start.sh
+RUN chmod +x /usr/local/bin/start.sh
+
+WORKDIR /data
+EXPOSE 8080
+CMD ["/usr/local/bin/start.sh"]
